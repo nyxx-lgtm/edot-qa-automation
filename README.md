@@ -12,6 +12,13 @@ and AI inside the suite: generated test data (3A) and failure triage (3B).
   broken run (`QA_BREAK=wrong_element`), and that run's report in
   [`evidence/allure-deliberate-failure/index.html`](evidence/allure-deliberate-failure/index.html).
 
+  Allure Report:
+  <img width="1915" height="943" alt="image" src="https://github.com/user-attachments/assets/87d267b3-a81a-49a6-bb02-98dc25797c22" />
+
+  AI Triage:
+  <img width="1904" height="945" alt="image" src="https://github.com/user-attachments/assets/10f22936-372f-4412-99ed-2996d0c736c9" />
+  <img width="1412" height="778" alt="image" src="https://github.com/user-attachments/assets/24004ca4-38c3-40c8-b5fe-09278d0ec971" />
+
 ## What is covered
 
 | ID | Scenario | Tier | Where |
