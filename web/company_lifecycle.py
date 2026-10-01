@@ -81,7 +81,7 @@ def register_company(page: Page, company: CompanyData) -> RegisteredCompany:
 
 
 def wait_until_accessible(page: Page, company: RegisteredCompany):
-    """Reload the Manage page until the company API serves our company (bounded)."""
+    """Reload the Manage page until the API serves our company and the form shows it (bounded)."""
     detail = CompanyDetailPage(page)
     deadline = time.monotonic() + ACCESS_TIMEOUT_S
     attempt = 0
@@ -95,12 +95,16 @@ def wait_until_accessible(page: Page, company: RegisteredCompany):
             except PlaywrightError as e:  # the page may not call the API at all while access is missing
                 served, last = False, type(e).__name__
             if served:
-                detail.wait_loaded(company.name)
-                allure.attach(f"served after {attempt} load(s)", name="access wait",
-                              attachment_type=allure.attachment_type.TEXT)
-                return
+                try:
+                    # The API answering is not enough: on slower networks (CI) the form can lag behind it.
+                    detail.wait_loaded(company.name)
+                    allure.attach(f"served after {attempt} load(s)", name="access wait",
+                                  attachment_type=allure.attachment_type.TEXT)
+                    return
+                except AssertionError:
+                    last = "API served the company but the form stayed empty"
             if time.monotonic() > deadline:
-                raise AssertionError(f"'{company.name}' not served by the company API "
+                raise AssertionError(f"'{company.name}' not shown on its Manage page "
                                      f"{ACCESS_TIMEOUT_S}s after registration (last: {last})")
 
 

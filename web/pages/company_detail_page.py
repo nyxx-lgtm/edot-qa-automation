@@ -8,6 +8,8 @@ from web.pages.base_page import BasePage
 
 # The Manage page loads the company from GET /api/v1/company/<24-hex id>.
 DETAIL_API = re.compile(r"/api/v1/company/[0-9a-f]{24}$")
+# The form fills after the API answers; on slower networks (CI) that can take well over 5 seconds.
+FORM_FILL_TIMEOUT_MS = 15_000
 
 
 class CompanyDetailPage(BasePage):
@@ -37,9 +39,9 @@ class CompanyDetailPage(BasePage):
         api = self.refetch(self.open(manage_url))
         return api.status, api.json()
 
-    def wait_loaded(self, company_name: str):
+    def wait_loaded(self, company_name: str, timeout: float = FORM_FILL_TIMEOUT_MS):
         # The form renders empty first and is populated from the API afterwards.
-        expect(self.company_name).to_have_value(company_name)
+        expect(self.company_name).to_have_value(company_name, timeout=timeout)
         return self
 
     def dropdown_value(self, label: str):
