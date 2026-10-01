@@ -3,7 +3,7 @@
 Web (eSuite) with Playwright + Pytest, mobile (eWork SFA) with Maestro + Pytest, one Allure report for both,
 and AI inside the suite: generated test data (3A) and failure triage (3B).
 
-- **Test cases (Phase 1):** [`docs/test_cases.xlsx`](docs/test_cases.xlsx) (built by `docs/build_test_cases.py`)
+- **Test cases (Phase 1):** [`docs/test_cases.xlsx`](docs/test_cases.xlsx)
 - **Product findings:** [`docs/FINDINGS.md`](docs/FINDINGS.md)
 - **AI design, prompts and guardrails:** [`AI_USAGE.md`](AI_USAGE.md)
 - **Evidence:** [`evidence/allure-full-run/index.html`](evidence/allure-full-run/index.html), a full run of web, mobile and
