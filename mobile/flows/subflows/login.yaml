@@ -1,0 +1,40 @@
+# Shared login sub-flow. Inputs (env): COMPANY_ID, USERNAME, PASSWORD.
+# It does not assert the outcome: callers decide whether success (dashboard) or a refusal is expected.
+appId: id.edot.ework
+---
+- launchApp:
+    clearState: true          # every flow starts logged out, from the same state
+    permissions:
+      all: allow              # no system permission dialogs mid-flow (notifications, camera)
+- extendedWaitUntil:
+    visible:
+      id: "btn_signin"
+    timeout: 30000
+# Right after a cold start the first keystrokes can be lost while the keyboard animates in
+# (seen once: Company ID stayed empty). Wait for the UI to settle, then prove each value landed.
+- tapOn:
+    id: "tv_company_id"
+- waitForAnimationToEnd
+- inputText: ${COMPANY_ID}
+- assertVisible:
+    id: "tv_company_id"
+    text: ${COMPANY_ID}
+- tapOn:
+    id: "tv_username"
+- waitForAnimationToEnd
+- inputText: ${USERNAME}
+- assertVisible:
+    id: "tv_username"
+    text: ${USERNAME}
+- tapOn:
+    id: "tv_password"
+- waitForAnimationToEnd
+- inputText: ${PASSWORD}
+- hideKeyboard
+# Sign In only enables once all three fields are filled - this also covers the (masked) password.
+- assertVisible:
+    id: "button_text"
+    text: "Sign In"
+    enabled: true
+- tapOn:
+    id: "btn_signin"

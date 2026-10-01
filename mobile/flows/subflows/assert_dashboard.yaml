@@ -1,0 +1,11 @@
+# Tier 1: we are on the eWork home dashboard (menu grid + daily recap), not on the login screen.
+appId: id.edot.ework
+---
+- extendedWaitUntil:
+    visible:
+      id: "rv_main_menu"
+    timeout: 30000
+- assertVisible:
+    id: "tabToday"
+- assertNotVisible:
+    id: "btn_signin"

@@ -1,0 +1,85 @@
+name: web-suite
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web-suite
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ESUITE_EMAIL: ${{ secrets.ESUITE_EMAIL }}
+      ESUITE_PASSWORD: ${{ secrets.ESUITE_PASSWORD }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # optional: without it data falls back to Faker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      # One pytest call: every call cleans allure-results, so a second call would erase the first's results.
+      - name: Unit tests + web suite (headless)
+        run: pytest tests/unit web
+
+      - name: AI failure triage (proposals only)
+        if: always()
+        run: python -m ai.triage --reproduce 1
+
+      - name: Safety-net cleanup of companies left by a crashed run
+        if: always()
+        run: python -m web.company_lifecycle --cleanup
+
+      - uses: actions/setup-java@v4
+        if: always()
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build Allure report
+        if: always()
+        run: |
+          npm install -g allure-commandline
+          allure generate allure-results -o allure-report --clean
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            allure-report
+            reports/triage_report.md
+
+      - name: Prepare Pages artifact
+        if: always() && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+  publish:
+    needs: web
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,13 @@
+# MOB-LOGIN-01 - a valid salesman lands on the dashboard.
+appId: id.edot.ework
+name: MOB-LOGIN-01 Valid salesman login shows the dashboard
+---
+- startRecording: recording
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      COMPANY_ID: ${MAESTRO_EWORK_COMPANY_ID}
+      USERNAME: ${MAESTRO_EWORK_USERNAME}
+      PASSWORD: ${MAESTRO_EWORK_PASSWORD}
+- runFlow: subflows/assert_dashboard.yaml
+- stopRecording

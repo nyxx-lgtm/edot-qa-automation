@@ -1,0 +1,21 @@
+# Secrets - never commit
+.env
+auth/
+handoff/*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Reports and run artefacts
+allure-results/
+allure-report/
+reports/
+test-results/
+mobile/output/
+
+# Large screen recordings: publish as a GitHub release asset instead
+evidence/*.mp4

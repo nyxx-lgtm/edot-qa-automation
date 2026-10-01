@@ -1,0 +1,24 @@
+# MOB-LOGIN-02 - handoff: the salesman the web suite just created in its new company tries to log in.
+# eWork refuses users that are not yet set up on the SFA side; we assert that exact message.
+appId: id.edot.ework
+name: MOB-LOGIN-02 New company's user is refused with 'Please contact Sales Admin'
+---
+- startRecording: recording
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      COMPANY_ID: ${MAESTRO_HANDOFF_COMPANY_ID}
+      USERNAME: ${MAESTRO_HANDOFF_USERNAME}
+      PASSWORD: ${MAESTRO_HANDOFF_PASSWORD}
+- extendedWaitUntil:
+    visible:
+      id: "txt_header"
+      text: "Oops"
+    timeout: 30000
+# Negative: the specific message, and we did not reach the dashboard.
+- assertVisible:
+    id: "textView"
+    text: ${MAESTRO_LOGIN_REFUSED_MESSAGE_RE}
+- assertNotVisible:
+    id: "rv_main_menu"
+- stopRecording

@@ -1,0 +1,207 @@
+# MOB-CUST-01 / MOB-CUST-02 - register a new customer (Basic -> Locations -> Documents) and verify it.
+# All data arrives as MAESTRO_* env vars from the pytest wrapper; *_RE values are regex-escaped
+# copies used in selectors (Maestro text selectors are regular expressions).
+appId: id.edot.ework
+name: MOB-CUST-02 New customer is listed with the data entered
+---
+- startRecording: recording
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      COMPANY_ID: ${MAESTRO_EWORK_COMPANY_ID}
+      USERNAME: ${MAESTRO_EWORK_USERNAME}
+      PASSWORD: ${MAESTRO_EWORK_PASSWORD}
+- runFlow: subflows/assert_dashboard.yaml
+
+- scrollUntilVisible:
+    element:
+      id: "home_label_menu_title"
+      text: "New Customer"
+- tapOn:
+    id: "home_label_menu_title"
+    text: "New Customer"
+- tapOn:
+    id: "noo_label_add_new_cust"
+
+# ---- Step 1: Basic ----
+- tapOn:
+    id: "noo_registration_input_outlet_name"
+- inputText: ${MAESTRO_CUSTOMER_NAME}
+- tapOn:
+    id: "noo_registration_input_phone"
+- inputText: ${MAESTRO_CUSTOMER_PHONE}
+- tapOn:
+    id: "noo_registration_input_email"
+- inputText: ${MAESTRO_CUSTOMER_EMAIL}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "noo_registration_input_contact_person"
+- tapOn:
+    id: "noo_registration_input_contact_person"
+- inputText: ${MAESTRO_CUSTOMER_CONTACT}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "noo_registration_input_outlet_type"
+- tapOn:
+    id: "noo_registration_input_channel"
+- tapOn:
+    id: "tvName"
+    text: ${MAESTRO_CHANNEL_TYPE_RE}
+- tapOn:
+    id: "noo_registration_input_outlet_type"
+- tapOn:
+    id: "tvName"
+    text: ${MAESTRO_CUSTOMER_TYPE_RE}
+- tapOn:
+    id: "noo_registration_action_submit"
+
+# ---- Step 2: Locations ----
+- tapOn:
+    id: "noo_registration_input_address_type"
+- tapOn:
+    id: "tvName"
+    text: ${MAESTRO_ADDRESS_TYPE_RE}
+# "Use my current location" is deliberately not used: it overwrites the address with a geocode.
+- scrollUntilVisible:
+    element:
+      id: "noo_registration_input_address"
+- tapOn:
+    id: "noo_registration_input_address"
+- inputText: ${MAESTRO_CUSTOMER_ADDRESS}
+- hideKeyboard
+- runFlow:
+    file: subflows/pick_location.yaml
+    env: { HINT: "Choose Province", VALUE_RE: "${MAESTRO_PROVINCE_RE}" }
+- runFlow:
+    file: subflows/pick_location.yaml
+    env: { HINT: "Choose City", VALUE_RE: "${MAESTRO_CITY_RE}" }
+- runFlow:
+    file: subflows/pick_location.yaml
+    env: { HINT: "Choose District", VALUE_RE: "${MAESTRO_DISTRICT_RE}" }
+- runFlow:
+    file: subflows/pick_location.yaml
+    env: { HINT: "Choose Sub district", VALUE_RE: "${MAESTRO_SUB_DISTRICT_RE}" }
+- scrollUntilVisible:
+    element:
+      id: "button_text"
+      text: "Continue"
+- tapOn:
+    id: "button_text"
+    text: "Continue"
+
+# ---- Step 3: Documents ----
+# The app shows its own camera rationale dialog once per install, before the system prompt.
+- runFlow:
+    when:
+      visible:
+        id: "btn_positive"
+    commands:
+      - tapOn:
+          id: "btn_positive"
+- tapOn:
+    id: "button_text"
+    text: "Upload File"
+- tapOn:
+    id: "btn_capture"
+- extendedWaitUntil:
+    visible:
+      id: "tv_filename"
+    timeout: 15000
+# MOB-CUST-01: Submit stays disabled while the mandatory KTP is empty.
+- assertVisible:
+    id: "button_text"
+    text: "Submit"
+    enabled: false
+- tapOn:
+    id: "update_info_item_input_value"
+- inputText: ${MAESTRO_CUSTOMER_KTP}
+- hideKeyboard
+- assertVisible:
+    id: "button_text"
+    text: "Submit"
+    enabled: true
+- takeScreenshot: before_submit
+- tapOn:
+    id: "button_text"
+    text: "Submit"
+
+# ---- Approval Signature (bottom sheet) ----
+- extendedWaitUntil:
+    visible:
+      id: "tv_signature_contract"
+    timeout: 15000
+- assertVisible:
+    id: "button_text"
+    text: "Register"
+    enabled: false             # cannot register without a signature
+# The pad is a drawing canvas with no child elements; a swipe from its centre draws the signature
+# (element-anchored, not a coordinate tap).
+- swipe:
+    from:
+      id: "signature_view"
+    direction: RIGHT
+- assertVisible:
+    id: "button_text"
+    text: "Register"
+    enabled: true
+- tapOn:
+    id: "button_text"
+    text: "Register"
+
+# ---- Final confirmation: only "Yes" actually saves the customer ----
+- extendedWaitUntil:
+    visible:
+      id: "dialog_title"
+      text: "Are you sure to save this customer data.*"
+    timeout: 15000
+- tapOn:
+    id: "btn_positive"
+- takeScreenshot: after_confirm
+# eWork is offline-first: the registration is stored on the device and synced when online.
+- extendedWaitUntil:
+    visible:
+      id: "tv_title_success"
+      text: "Data Saved Successfully"
+    timeout: 30000
+- assertVisible:
+    id: "tv_desc_success"
+    text: "The new customer registration has been saved on your device.*"
+- tapOn:
+    id: "button_text"
+    text: "Continue"
+
+# ---- Verify (MOB-CUST-02) ----
+- extendedWaitUntil:
+    visible:
+      id: "tvTitleHeader"
+      text: "New Customer List"
+    timeout: 60000
+# Tier 2: the registration we just submitted is listed with the values we entered.
+# The list is sorted oldest-first, lazily paginated and shared by every candidate (280+ entries),
+# so the newest registration is at the very bottom: scroll with a generous bound.
+# Default swipe speed on purpose: at speed 100 the swipe is so short that Android reads it as
+# a tap, and the flow kept opening the first card instead of scrolling.
+- scrollUntilVisible:
+    element:
+      id: "tv_name"
+      text: ${MAESTRO_CUSTOMER_NAME_RE}
+    timeout: 420000
+    centerElement: true
+# One card must hold all of these together. A registration awaiting approval has no detail
+# screen, and phone/email/contact person are not shown anywhere in the app's UI (see README).
+- assertVisible:
+    containsDescendants:
+      - id: "tv_name"
+        text: ${MAESTRO_CUSTOMER_NAME_RE}
+      - id: "tv_address"
+        text: ${MAESTRO_CUSTOMER_ADDRESS_RE}
+      - id: "tv_first_customer_group"
+        text: ${MAESTRO_CUSTOMER_TYPE_RE}
+      - id: "tv_status"
+        text: "Waiting for Approval"
+      - id: "tv_reg_number"
+        text: "CUST-[0-9]{5}"
+- takeScreenshot: customer_listed
+- stopRecording

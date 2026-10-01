@@ -1,0 +1,32 @@
+# Choose one level of the customer address cascade.
+# Inputs (env): HINT - the empty dropdown's hint, e.g. "Choose City"; VALUE_RE - the option, regex-escaped.
+appId: id.edot.ework
+---
+- tapOn: ${HINT}
+- extendedWaitUntil:
+    visible:
+      id: "noo_location_option_item_title"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "noo_location_option_item_title"
+      text: ${VALUE_RE}
+- tapOn:
+    id: "noo_location_option_item_title"
+    text: ${VALUE_RE}
+# Most levels apply on tap; during exploration Province once kept its picker open until Apply.
+- runFlow:
+    when:
+      visible:
+        id: "button_text"
+        text: "Apply"
+    commands:
+      - tapOn:
+          id: "button_text"
+          text: "Apply"
+- extendedWaitUntil:
+    notVisible: "Choose Location"
+    timeout: 15000
+- assertVisible:
+    id: "edit_location_item_dropdown"
+    text: ${VALUE_RE}
